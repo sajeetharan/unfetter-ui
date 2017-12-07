@@ -1,8 +1,10 @@
+// Vendor
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatSelectModule, MatChipsModule, MatTooltipModule, MatCardModule,
     MatTabsModule, MatInputModule, MatIconModule, MatButtonModule, MatDatepickerModule, MatNativeDateModule, MatRadioModule, MatListModule, MatStepperModule } from '@angular/material';
+import { StoreModule } from '@ngrx/store';
 
 // Modules
 import { routing } from './indicator-sharing-routing.module';
@@ -16,6 +18,9 @@ import { AddIndicatorComponent } from './add-indicator/add-indicator.component.t
 
 // Services
 import { IndicatorSharingService } from './indicator-sharing.service';
+
+// Other
+import { indicatorSharingReducer } from './store/indicator-sharing.reducers';
 
 const matModules = [
     MatButtonModule,
@@ -41,6 +46,7 @@ const matModules = [
         FormsModule,
         ReactiveFormsModule,
         ...matModules,
+        StoreModule.forFeature('indicatorSharing', indicatorSharingReducer)
     ],
     exports: [],
     declarations: [

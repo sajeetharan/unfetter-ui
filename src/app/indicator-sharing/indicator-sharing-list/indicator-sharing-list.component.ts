@@ -2,10 +2,13 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { MatDialog } from '@angular/material';
 import { Observable } from 'rxjs/Observable';
 import { Subject } from 'rxjs/Subject';
+import { Store } from '@ngrx/store';
 
 import { IndicatorSharingService } from '../indicator-sharing.service';
 import { AddIndicatorComponent } from '../add-indicator/add-indicator.component';
 import { ConfigService } from '../../core/services/config.service';
+import * as fromIndicatorSharing from '../store/indicator-sharing.reducers';
+import * as indicatorSharingActions from '../store/indicator-sharing.actions';
 
 @Component({
     selector: 'indicator-sharing-list',
@@ -42,7 +45,8 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
     constructor(
         private indicatorSharingService: IndicatorSharingService, 
         public dialog: MatDialog,
-        private configService: ConfigService
+        private configService: ConfigService,
+        private store: Store<fromIndicatorSharing.IndicatorSharingState>
     ) { }
 
     public ngOnInit() { 
@@ -55,11 +59,13 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
             (results) => {
                 // Identities
                 this.identities = results[0].map((r) => r.attributes); 
+                this.store.dispatch(new indicatorSharingActions.SetIdentities(this.identities));
 
                 this.organizations = this.identities.filter((identity) => identity.identity_class === 'organization');
 
                 // Indicators
                 this.allIndicators = results[1].map((res) => res.attributes);
+                this.store.dispatch(new indicatorSharingActions.SetIndicators(this.allIndicators));
 
                 this.filterIndicators();
                 this.setIndicatorSearchParameters();         
@@ -67,10 +73,11 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
                 // Attack patterns
                 results[2].attributes.forEach((res) => {
                     this.indicatorToAttackPatternMap[res._id] = res.attackPatterns;
-                }); 
+                });
 
                 // Sensors with observed data paths
-                this.sensors = results[3].map((r) => r.attributes)
+                this.sensors = results[3].map((r) => r.attributes);
+                this.store.dispatch(new indicatorSharingActions.SetSensors(this.sensors));
                 this.buildIndicatorToSensorMap();
             },
             (err) => {
@@ -102,6 +109,7 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
 
     public ngOnDestroy() {
         this.dialog.closeAll();
+        this.store.dispatch(new indicatorSharingActions.ClearData());
     }
 
     public updateIndicator(newIndicatorState) {
