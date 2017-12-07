@@ -23,13 +23,13 @@ export class IndicatorSharingSearchComponent implements OnInit {
     public killChainPhases$;
     public labels$;
 
-    constructor(private store: Store<fromIndicatorSharing.IndicatorSharingFeatureState>) { }   
+    constructor(public store: Store<fromIndicatorSharing.IndicatorSharingFeatureState>) { }   
 
     public ngOnInit() {
         const searchChanges$ = this.searchForm.valueChanges
             .debounceTime(300)
             .subscribe((res) => {
-                    console.log(res);
+                    this.store.dispatch(new indicatorSharingActions.FilterIndicators(res));
                 },
                 (err) => {
                     console.log(err);
@@ -61,6 +61,6 @@ export class IndicatorSharingSearchComponent implements OnInit {
     }
 
     public sortIndicators() {
-
+        this.store.dispatch(new indicatorSharingActions.SortIndicators(this.sortBy));
     }
 }

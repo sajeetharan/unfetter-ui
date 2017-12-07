@@ -6,6 +6,8 @@ export const STORE_INDICATOR = '[Indicator Sharing] STORE_INDICATORS';
 
 // For reducers
 export const SET_INDICATORS = '[Indicator Sharing] SET_INDICATORS';
+export const FILTER_INDICATORS = '[Indicator Sharing] FILTER_INDICATORS';
+export const SORT_INDICATORS = '[Indicator Sharing] SORT_INDICATORS';
 export const ADD_INDICATOR = '[Indicator Sharing] ADD_INDICATOR';
 export const UPDATE_INDICATOR = '[Indicator Sharing] UPDATE_INDICATOR';
 export const DELETE_INDICATOR = '[Indicator Sharing] DELETE_INDICATOR';
@@ -18,6 +20,18 @@ export class SetIndicators implements Action {
     public readonly type = SET_INDICATORS;
 
     constructor(public payload: any[]) { }
+}
+
+export class FilterIndicators implements Action {
+    public readonly type = FILTER_INDICATORS;
+
+    constructor(public payload: any) { }
+}
+
+export class SortIndicators implements Action {
+    public readonly type = SORT_INDICATORS;
+
+    constructor(public payload: string) { }
 }
 
 export class AddIndicator implements Action {
@@ -55,7 +69,9 @@ export class ClearData implements Action {
 }
 
 export type IndicatorSharingActions = 
-    SetIndicators |    
+    SetIndicators |
+    FilterIndicators |
+    SortIndicators |
     AddIndicator |
     UpdateIndicator |
     DeleteIndicator |
