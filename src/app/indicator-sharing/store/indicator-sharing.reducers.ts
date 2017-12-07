@@ -1,4 +1,9 @@
 import * as indicatorSharingActions from './indicator-sharing.actions';
+import * as fromApp from '../../root-store/app.reducers'
+
+export interface IndicatorSharingFeatureState extends fromApp.AppState {
+    indicatorSharing: IndicatorSharingState
+};
 
 export interface IndicatorSharingState {
     indicators: any[],

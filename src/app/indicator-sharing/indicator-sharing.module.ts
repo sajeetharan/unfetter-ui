@@ -10,17 +10,18 @@ import { StoreModule } from '@ngrx/store';
 import { routing } from './indicator-sharing-routing.module';
 import { GlobalModule } from '../global/global.module';
 
-// Components
-import { IndicatorSharingLayoutComponent } from './indicator-sharing-layout/indicator-sharing-layout.component';
-import { IndicatorSharingListComponent } from './indicator-sharing-list/indicator-sharing-list.component';
-import { IndicatorCardComponent } from './indicator-card/indicator-card.component';
-import { AddIndicatorComponent } from './add-indicator/add-indicator.component.ts';
-
 // Services
 import { IndicatorSharingService } from './indicator-sharing.service';
 
 // Other
 import { indicatorSharingReducer } from './store/indicator-sharing.reducers';
+
+// Components
+import { IndicatorSharingLayoutComponent } from './indicator-sharing-layout/indicator-sharing-layout.component';
+import { IndicatorSharingListComponent } from './indicator-sharing-list/indicator-sharing-list.component';
+import { IndicatorCardComponent } from './indicator-card/indicator-card.component';
+import { AddIndicatorComponent } from './add-indicator/add-indicator.component.ts';
+import { IndicatorSharingSearchComponent } from './indicator-sharing-search/indicator-sharing-search.component';
 
 const matModules = [
     MatButtonModule,
@@ -53,7 +54,8 @@ const matModules = [
         IndicatorSharingLayoutComponent,
         IndicatorSharingListComponent,
         IndicatorCardComponent,
-        AddIndicatorComponent
+        AddIndicatorComponent,
+        IndicatorSharingSearchComponent
     ],
     providers: [
         IndicatorSharingService
