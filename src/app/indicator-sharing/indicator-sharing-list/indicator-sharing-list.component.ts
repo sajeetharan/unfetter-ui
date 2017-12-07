@@ -1,8 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { MatDialog } from '@angular/material';
-import { Observable } from 'rxjs/Observable';
-import { Subject } from 'rxjs/Subject';
 import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs/Observable';
+import 'rxjs/add/operator/distinctUntilChanged';
+import 'rxjs/add/operator/pluck';
 
 import { IndicatorSharingService } from '../indicator-sharing.service';
 import { AddIndicatorComponent } from '../add-indicator/add-indicator.component';
@@ -26,19 +27,7 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
     public DEFAULT_LENGTH: number = 10;
     public serverCallComplete: boolean = false;
     public indicatorToAttackPatternMap: any = {};
-    public searchParametersInitialState: any = {
-        labels: [],
-        activeLabels: [],
-        activeIdentities: [],
-        killChainPhases: [],
-        activeKillChainPhases: [],
-        activeSensorIds: [],
-        indicatorName: ''
-    };
-    public searchParameters: any = { ...this.searchParametersInitialState };
     public SERVER_CALL_COMPLETE = false;
-    public sortBy: string = 'NEWEST';
-    public searchDebouncer: Subject<any> = new Subject();
     public sensors: any[];
     public indicatorToSensorMap: any = {};
 
@@ -46,7 +35,7 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
         private indicatorSharingService: IndicatorSharingService, 
         public dialog: MatDialog,
         private configService: ConfigService,
-        private store: Store<fromIndicatorSharing.IndicatorSharingState>
+        private store: Store<fromIndicatorSharing.IndicatorSharingFeatureState>
     ) { }
 
     public ngOnInit() { 
@@ -67,8 +56,20 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
                 this.allIndicators = results[1].map((res) => res.attributes);
                 this.store.dispatch(new indicatorSharingActions.SetIndicators(this.allIndicators));
 
-                this.filterIndicators();
-                this.setIndicatorSearchParameters();         
+                const indicatorSub$ = this.store.select('indicatorSharing')
+                    .pluck('filteredIndicators')
+                    .distinctUntilChanged()
+                    .subscribe((res: any[]) => {
+                            this.filteredIndicators = res;
+                            this.displayedIndicators = res.slice(0, this.DEFAULT_LENGTH);
+                        },
+                        (err) => {
+                            console.log(err);
+                        },
+                        () => {
+                            indicatorSub$.unsubscribe();
+                        }
+                    );
                 
                 // Attack patterns
                 results[2].attributes.forEach((res) => {
@@ -88,23 +89,6 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
                 getData$.unsubscribe();
             }
         );
-
-        this.configService.getConfigPromise()
-            .then((res) => {
-                const attackKillchain = res.killChains.find((kc) => kc.name === 'mitre-attack');
-                this.searchParameters.killChainPhases = attackKillchain.phase_names;
-            })
-            .catch((err) => {
-                console.log(err);
-            });
-
-        const searchEvents$ = this.searchDebouncer
-            .debounceTime(300)
-            .subscribe(
-                () => this.filterIndicators(),
-                (e) => console.log(e),
-                () => searchEvents$.unsubscribe()
-            );
     }    
 
     public ngOnDestroy() {
@@ -151,7 +135,8 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
                                 );
                         }                        
                         this.buildIndicatorToSensorMap();
-                        this.filterIndicators();
+                        // TODO handle update in ngrx
+                        // this.filterIndicators();
                     }
                 },
                 (err) => {
@@ -161,115 +146,11 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
                     dialogRefClose$.unsubscribe();
                 }
             );
-    }
+    }    
 
-    public filterIndicators() {
-        if (this.searchParameters.activeLabels && this.searchParameters.activeLabels.length > 0) {
-            this.filteredIndicators = this.allIndicators
-                .filter((indicator) => {
-                    if (indicator.labels !== undefined && indicator.labels.length > 0) {
-                        let labelPresent = false;
-                        indicator.labels
-                            .forEach((label) => {
-                                if (this.searchParameters.activeLabels.includes(label)) {
-                                    labelPresent = true;
-                                }
-                            });
-                        return labelPresent
-                    } else {
-                        return false;
-                    }
-                });
-        } else {
-            this.filteredIndicators = this.allIndicators;
-        }
-
-        if (this.searchParameters.activeIdentities && this.searchParameters.activeIdentities.length > 0) {
-            this.filteredIndicators = this.filteredIndicators
-                .filter((indicator) => indicator.created_by_ref !== undefined && this.searchParameters.activeIdentities.includes(indicator.created_by_ref));
-        }
-
-        if (this.searchParameters.activeKillChainPhases && this.searchParameters.activeKillChainPhases.length > 0) {
-            this.filteredIndicators = this.filteredIndicators
-                .filter((indicator) => !!indicator.kill_chain_phases)
-                .filter((indicator) => {
-                    let found = false;
-                    indicator.kill_chain_phases.map((e) => e.phase_name).forEach((phase) => {
-                        if (this.searchParameters.activeKillChainPhases.includes(phase)) {
-                            found = true;
-                        }
-                    });
-                    return found;
-                });
-        }
-        
-        if (this.searchParameters.indicatorName && this.searchParameters.indicatorName !== '') {
-            this.filteredIndicators = this.filteredIndicators
-                .filter((indicator) => !!indicator.name)
-                .filter((indicator) => indicator.name.toLowerCase().indexOf(this.searchParameters.indicatorName.toLowerCase()) > -1);
-        }
-
-        if (this.searchParameters.activeSensorIds && this.searchParameters.activeSensorIds.length > 0) {
-            this.filteredIndicators = this.filteredIndicators
-                .filter((indicator) => indicator.metaProperties && indicator.metaProperties.observedData && Object.keys(this.indicatorToSensorMap).includes(indicator.id))
-                .filter((indicator) => this.indicatorToSensorMap[indicator.id]
-                    .map((sensor) => sensor.id)
-                    .filter((sensorId) => this.searchParameters.activeSensorIds.includes(sensorId)).length > 0
-                );
-        }
-
-        this.sortIndicators();           
-    }
-
-    public sortByArrayLengthHelper(a, b, field) {
-        if (a.metaProperties && a.metaProperties[field] && (!b.metaProperties[field] || !b.metaProperties)) {
-            return -1;
-        } else if ((!a.metaProperties || !a.metaProperties[field]) && b.metaProperties && b.metaProperties[field]) {
-            return 1;
-        } else if (a.metaProperties && a.metaProperties[field] && b.metaProperties && b.metaProperties[field]) {
-            return b.metaProperties[field].length - a.metaProperties[field].length;
-        } else {
-            return 0;
-        }
-    }
-
-    public sortIndicators() {
-        switch (this.sortBy) {
-            case 'NEWEST':
-                this.filteredIndicators = this.filteredIndicators.sort((a, b) => {
-                    return (new Date(b.created) as any) - (new Date(a.created) as any);
-                });
-                break;
-            case 'OLDEST':
-                this.filteredIndicators = this.filteredIndicators.sort((a, b) => {
-                    return (new Date(a.created) as any) - (new Date(b.created) as any);
-                });
-                break;
-            case 'LIKES':
-                this.filteredIndicators = this.filteredIndicators.sort((a, b) => this.sortByArrayLengthHelper(a, b, 'likes'));
-                break;
-            case 'COMMENTS':
-                this.filteredIndicators = this.filteredIndicators.sort((a, b) => this.sortByArrayLengthHelper(a, b, 'comments'));
-                break;
-        }        
-        this.setDisplayedIndicators();
-    }
-
-    public setDisplayedIndicators() {
-        this.displayedIndicators = this.filteredIndicators.slice(0, this.DEFAULT_LENGTH);
-    }
-
-    public setIndicatorSearchParameters() {        
-        let labelSet: Set<string> = new Set();
-        
-        this.allIndicators
-            .filter((indicator) => indicator.labels !== undefined && indicator.labels.length > 0)
-            .map((indicator) => indicator.labels)
-            .reduce((prev, cur) => prev.concat(cur), [])
-            .forEach((label) => labelSet.add(label));
-        
-        this.searchParameters.labels = Array.from(labelSet);
-    }
+    // public setDisplayedIndicators() {
+    //     this.displayedIndicators = this.filteredIndicators.slice(0, this.DEFAULT_LENGTH);
+    // }
 
     public showMoreIndicators() {
         const currentLength = this.displayedIndicators.length;
@@ -298,14 +179,14 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
         }
     }
 
-    public clearSearchParamaters() {
-        this.searchParameters.activeLabels = []; 
-        this.searchParameters.activeIdentities = []; 
-        this.searchParameters.activeKillChainPhases = [];
-        this.searchParameters.activeSensorIds = [];
-        this.searchParameters.indicatorName = '';
-        this.filterIndicators();
-    }
+    // public clearSearchParamaters() {
+    //     this.searchParameters.activeLabels = []; 
+    //     this.searchParameters.activeIdentities = []; 
+    //     this.searchParameters.activeKillChainPhases = [];
+    //     this.searchParameters.activeSensorIds = [];
+    //     this.searchParameters.indicatorName = '';
+    //     this.filterIndicators();
+    // }
 
     public getSensorsByIndicatorId(indicatorId) {
         if (Object.keys(this.indicatorToSensorMap).includes(indicatorId)) {

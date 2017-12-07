@@ -1,6 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { FormGroup, FormControl } from '@angular/forms';
 import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs/Observable';
+import 'rxjs/add/operator/distinctUntilChanged';
+import 'rxjs/add/operator/pluck';
+import 'rxjs/add/operator/map';
+import 'rxjs/add/operator/filter';
 
 import * as fromIndicatorSharing from '../store/indicator-sharing.reducers';
 import * as indicatorSharingActions from '../store/indicator-sharing.actions';
@@ -28,8 +33,10 @@ export class IndicatorSharingSearchComponent implements OnInit {
     public ngOnInit() {
         const searchChanges$ = this.searchForm.valueChanges
             .debounceTime(300)
+            .distinctUntilChanged()
             .subscribe((res) => {
                     this.store.dispatch(new indicatorSharingActions.FilterIndicators(res));
+                    this.store.dispatch(new indicatorSharingActions.SortIndicators(this.sortBy));
                 },
                 (err) => {
                     console.log(err);
