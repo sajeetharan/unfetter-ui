@@ -19,9 +19,9 @@ import * as indicatorSharingActions from '../store/indicator-sharing.actions';
 
 export class IndicatorSharingListComponent implements OnInit, OnDestroy {
 
-    public displayedIndicators: any;
+    public displayedIndicators: any[];
     public identities: any[];
-    public filteredIndicators: any;
+    public filteredIndicators: any[];
     public DEFAULT_LENGTH: number = 10;
     public serverCallComplete: boolean = false;
     public indicatorToAttackPatternMap: any = {};
@@ -43,7 +43,8 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
             this.indicatorSharingService.getIndicators(),
             this.indicatorSharingService.getAttackPatternsByIndicator(),
             this.indicatorSharingService.getSensors()
-        ).subscribe(
+        )
+        .subscribe(
             (results) => {
                 // Identities
                 this.identities = results[0].map((r) => r.attributes); 
@@ -52,19 +53,33 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
                 // Indicators
                 this.store.dispatch(new indicatorSharingActions.SetIndicators(results[1].map((res) => res.attributes)));
 
-                const indicatorSub$ = this.store.select('indicatorSharing')
+                const filteredIndicatorSub$ = this.store.select('indicatorSharing')
                     .pluck('filteredIndicators')
                     .distinctUntilChanged()
                     .subscribe(
                         (res: any[]) => {
                             this.filteredIndicators = res;
-                            this.displayedIndicators = res.slice(0, this.DEFAULT_LENGTH);
                         },
                         (err) => {
                             console.log(err);
                         },
                         () => {
-                            indicatorSub$.unsubscribe();
+                            filteredIndicatorSub$.unsubscribe();
+                        }
+                    );
+                
+                const displayedIndicatorSub$ = this.store.select('indicatorSharing')
+                    .pluck('displayedIndicators')
+                    .distinctUntilChanged()
+                    .subscribe(
+                        (res: any[]) => {
+                            this.displayedIndicators = res;
+                        },
+                        (err) => {
+                            console.log(err);
+                        },
+                        () => {
+                            filteredIndicatorSub$.unsubscribe();
                         }
                     );
 
@@ -168,15 +183,14 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
     }
 
     public showMoreIndicators() {
-        const currentLength = this.displayedIndicators.length;
-        this.displayedIndicators = this.displayedIndicators.concat(this.filteredIndicators.slice(currentLength, currentLength + this.DEFAULT_LENGTH));
+        this.store.dispatch(new indicatorSharingActions.ShowMoreIndicators());
     }
 
     public displayShowMoreButton() {
         if (!this.SERVER_CALL_COMPLETE || !this.displayedIndicators || this.displayedIndicators.length === 0) {
             return false;
         } else {
-            return (this.displayedIndicators.length + this.DEFAULT_LENGTH) < this.filteredIndicators.length;
+            return this.displayedIndicators.length < this.filteredIndicators.length;
         }
     }
 

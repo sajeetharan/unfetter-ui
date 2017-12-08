@@ -17,6 +17,7 @@ export const SET_IDENTITIES = '[Indicator Sharing] SET_IDENTITIES';
 export const CLEAR_DATA = '[Indicator Sharing] CLEAR_DATA';
 export const SET_SEARCH_PARAMETERS = '[Indicator Sharing] SET_SEARCH_PARAMETERS';
 export const CLEAR_SEARCH_PARAMETERS = '[Indicator Sharing] CLEAR_SEARCH_PARAMETERS';
+export const SHOW_MORE_INDICATORS = '[Indicator Sharing] SHOW_MORE_INDICATORS';
 
 export class SetIndicators implements Action {
     public readonly type = SET_INDICATORS;
@@ -78,6 +79,10 @@ export class ClearSearchParameters implements Action {
     public readonly type = CLEAR_SEARCH_PARAMETERS;
 }
 
+export class ShowMoreIndicators implements Action {
+    public readonly type = SHOW_MORE_INDICATORS;
+}
+
 export type IndicatorSharingActions = 
     SetIndicators |
     FilterIndicators |
@@ -89,4 +94,5 @@ export type IndicatorSharingActions =
     SetIdentities |
     ClearData |
     SetSearchParameters |
-    ClearSearchParameters;
+    ClearSearchParameters |
+    ShowMoreIndicators;

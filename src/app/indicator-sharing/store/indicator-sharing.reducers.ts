@@ -10,6 +10,7 @@ export interface IndicatorSharingFeatureState extends fromApp.AppState {
 export interface IndicatorSharingState {
     indicators: any[],
     filteredIndicators: any[],
+    displayedIndicators: any[]
     sensors: any[],
     identities: any[],
     searchParameters: {},
@@ -28,6 +29,7 @@ export const initialSearchParameters: SearchParameters = {
 const initialState: IndicatorSharingState = {
     indicators: [],
     filteredIndicators: [],
+    displayedIndicators: [],
     sensors: [],
     identities: [],
     searchParameters: { ...initialSearchParameters },
@@ -35,13 +37,16 @@ const initialState: IndicatorSharingState = {
     sortBy: SortTypes.NEWEST
 };
 
+const DEFAULT_DISPLAYED_LENGTH: number = 10;
+
 export function indicatorSharingReducer(state = initialState, action: indicatorSharingActions.IndicatorSharingActions) {
     switch (action.type) {
         case indicatorSharingActions.SET_INDICATORS:
             return sortIndicators({
                 ...state,
                 indicators: action.payload,
-                filteredIndicators: action.payload
+                filteredIndicators: action.payload,
+                displayedIndicators: initDisplauyedIndicators(action.payload)
             }, state.sortBy);
         case indicatorSharingActions.FILTER_INDICATORS:
             return sortIndicators(filterIndicators(state, state.searchParameters), state.sortBy);
@@ -49,6 +54,7 @@ export function indicatorSharingReducer(state = initialState, action: indicatorS
             return sortIndicators(state, action.payload);
         case indicatorSharingActions.ADD_INDICATOR:
             // TODO update indicatorToSensorMap
+            // TODO update filtered & displayed indicatoes
             return {
                 ...state,
                 indicators: [
@@ -73,13 +79,22 @@ export function indicatorSharingReducer(state = initialState, action: indicatorS
                     indicators: iIndicators
                 };
 
-                // also update in filteredIndicators
+                // update in filteredIndicators
                 const filteredIndicatorToUpdateIndex = state.filteredIndicators.findIndex((indicator) => indicator.id === action.payload.id);
                 if (filteredIndicatorToUpdateIndex > -1) {
                     const fIndicators = [...state.filteredIndicators];
                     fIndicators[filteredIndicatorToUpdateIndex] = action.payload;
                     retVal.filteredIndicators = fIndicators;
                 }
+
+                // update in displayed indicators
+                const displayedIndicatorToUpdateIndex = state.displayedIndicators.findIndex((indicator) => indicator.id === action.payload.id);
+                if (displayedIndicatorToUpdateIndex > -1) {
+                    const dIndicators = [...state.displayedIndicators];
+                    dIndicators[displayedIndicatorToUpdateIndex] = action.payload;
+                    retVal.displayedIndicators = dIndicators;
+                }
+
                 return retVal;
             } else {
                 console.log('Did not find indicator to update;');
@@ -118,6 +133,16 @@ export function indicatorSharingReducer(state = initialState, action: indicatorS
             };
         case indicatorSharingActions.CLEAR_DATA:
             return initialState;
+        case indicatorSharingActions.SHOW_MORE_INDICATORS:
+            const currentLength = state.displayedIndicators.length;
+            const displayedIndicators = [
+                ...state.displayedIndicators,
+                ...state.filteredIndicators.slice(currentLength, currentLength + DEFAULT_DISPLAYED_LENGTH)
+            ];
+            return {
+                ...state,
+                displayedIndicators
+            };           
         default:
             return state;
     }
@@ -197,7 +222,7 @@ function sortByArrayLengthHelper(a, b, field): number {
     }
 }
 
-function sortIndicators(state, sortBy): any[] {
+function sortIndicators(state, sortBy) {
     let filteredIndicators = [ ...state.filteredIndicators ];
     switch (sortBy) {
         case SortTypes.NEWEST:
@@ -220,7 +245,8 @@ function sortIndicators(state, sortBy): any[] {
     return {
         ...state,
         filteredIndicators,
-        sortBy
+        sortBy,
+        displayedInicators: initDisplauyedIndicators(filteredIndicators)
     };
 }
 
@@ -254,4 +280,8 @@ function buildIndicatorToSensorMap(indicators, sensors): object {
     });
 
     return indicatorToSensorMap;
+}
+
+function initDisplauyedIndicators(filteredIndicators: any[]) {
+    return [...filteredIndicators.slice(0, DEFAULT_DISPLAYED_LENGTH)];
 }
