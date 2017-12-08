@@ -1,5 +1,6 @@
 import * as indicatorSharingActions from './indicator-sharing.actions';
 import * as fromApp from '../../root-store/app.reducers'
+import { SearchParameters } from '../models/search-parameters';
 
 export interface IndicatorSharingFeatureState extends fromApp.AppState {
     indicatorSharing: IndicatorSharingState
@@ -9,14 +10,24 @@ export interface IndicatorSharingState {
     indicators: any[],
     filteredIndicators: any[],
     sensors: any[],
-    identities: any[]
+    identities: any[],
+    searchParameters: {}
 }
+
+export const initialSearchParameters: SearchParameters = {
+    indicatorName: '',
+    killChainPhases: [],
+    labels: [],
+    organizations: [],
+    sensors: []
+};
 
 const initialState: IndicatorSharingState = {
     indicators: [],
     filteredIndicators: [],
     sensors: [],
-    identities: []
+    identities: [],
+    searchParameters: { ...initialSearchParameters }
 };
 
 export function indicatorSharingReducer(state = initialState, action: indicatorSharingActions.IndicatorSharingActions) {
@@ -28,7 +39,7 @@ export function indicatorSharingReducer(state = initialState, action: indicatorS
                 filteredIndicators: action.payload
             };
         case indicatorSharingActions.FILTER_INDICATORS:
-            return filterIndicators(state, action.payload);
+            return filterIndicators(state, state.searchParameters);
         case indicatorSharingActions.SORT_INDICATORS:
             return sortIndicators(state, action.payload);
         case indicatorSharingActions.ADD_INDICATOR:            
@@ -67,6 +78,18 @@ export function indicatorSharingReducer(state = initialState, action: indicatorS
             return {
                 ...state,
                 identities: action.payload
+            };
+
+        case indicatorSharingActions.SET_SEARCH_PARAMETERS:
+            return {
+                ...state,
+                searchParameters: action.payload
+            };
+        case indicatorSharingActions.CLEAR_SEARCH_PARAMETERS:
+            return {
+                ...state,
+                searchParameters: { ...initialSearchParameters },
+                filteredIndicators: [ ...state.indicators ]
             };
         case indicatorSharingActions.CLEAR_DATA:
             return initialState;

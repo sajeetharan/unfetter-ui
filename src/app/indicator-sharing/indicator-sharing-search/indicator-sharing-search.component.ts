@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { FormGroup, FormControl } from '@angular/forms';
+import { Component, OnInit, Inject } from '@angular/core';
+import { FormGroup, FormBuilder } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/operator/distinctUntilChanged';
@@ -9,6 +9,7 @@ import 'rxjs/add/operator/filter';
 
 import * as fromIndicatorSharing from '../store/indicator-sharing.reducers';
 import * as indicatorSharingActions from '../store/indicator-sharing.actions';
+import { SearchParameters } from '../models/search-parameters';
 
 @Component({
     selector: 'indicator-sharing-search',
@@ -17,25 +18,24 @@ import * as indicatorSharingActions from '../store/indicator-sharing.actions';
 })
 export class IndicatorSharingSearchComponent implements OnInit {
 
-    public searchForm = new FormGroup({
-        indicatorName: new FormControl(''),
-        labels: new FormControl([]),
-        killChainPhases: new FormControl([]),
-        organizations: new FormControl([]),
-        sensors: new FormControl([])
-    });
+    public searchForm: FormGroup;
     public sortBy: string = 'NEWEST';
-    public killChainPhases$;
-    public labels$;
+    public killChainPhases$: Observable<any>;
+    public labels$: Observable<any>;
 
-    constructor(public store: Store<fromIndicatorSharing.IndicatorSharingFeatureState>) { }   
+    constructor(public store: Store<fromIndicatorSharing.IndicatorSharingFeatureState>, @Inject(FormBuilder) fb: FormBuilder) {
+        this.searchForm = fb.group(fromIndicatorSharing.initialSearchParameters);
+        this.searchForm.setValue(fromIndicatorSharing.initialSearchParameters);
+     }   
 
     public ngOnInit() {
         const searchChanges$ = this.searchForm.valueChanges
             .debounceTime(300)
             .distinctUntilChanged()
-            .subscribe((res) => {
-                    this.store.dispatch(new indicatorSharingActions.FilterIndicators(res));
+            .subscribe(
+                (searchParams: SearchParameters) => {
+                    this.store.dispatch(new indicatorSharingActions.SetSearchParameters(searchParams));
+                    this.store.dispatch(new indicatorSharingActions.FilterIndicators());
                     this.store.dispatch(new indicatorSharingActions.SortIndicators(this.sortBy));
                 },
                 (err) => {
@@ -68,6 +68,12 @@ export class IndicatorSharingSearchComponent implements OnInit {
     }
 
     public sortIndicators() {
+        this.store.dispatch(new indicatorSharingActions.SortIndicators(this.sortBy));
+    }
+
+    public clearSearchParamaters() {
+        this.searchForm.reset(fromIndicatorSharing.initialSearchParameters);
+        this.store.dispatch(new indicatorSharingActions.ClearSearchParameters());
         this.store.dispatch(new indicatorSharingActions.SortIndicators(this.sortBy));
     }
 }

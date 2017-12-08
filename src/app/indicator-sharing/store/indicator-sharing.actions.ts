@@ -15,6 +15,8 @@ export const DELETE_INDICATOR = '[Indicator Sharing] DELETE_INDICATOR';
 export const SET_SENSORS = '[Indicator Sharing] SET_SENSORS';
 export const SET_IDENTITIES = '[Indicator Sharing] SET_IDENTITIES';
 export const CLEAR_DATA = '[Indicator Sharing] CLEAR_DATA';
+export const SET_SEARCH_PARAMETERS = '[Indicator Sharing] SET_SEARCH_PARAMETERS';
+export const CLEAR_SEARCH_PARAMETERS = '[Indicator Sharing] CLEAR_SEARCH_PARAMETERS';
 
 export class SetIndicators implements Action {
     public readonly type = SET_INDICATORS;
@@ -24,8 +26,6 @@ export class SetIndicators implements Action {
 
 export class FilterIndicators implements Action {
     public readonly type = FILTER_INDICATORS;
-
-    constructor(public payload: any) { }
 }
 
 export class SortIndicators implements Action {
@@ -68,6 +68,16 @@ export class ClearData implements Action {
     public readonly type = CLEAR_DATA;
 }
 
+export class SetSearchParameters implements Action {
+    public readonly type = SET_SEARCH_PARAMETERS;
+
+    constructor(public payload: {}) { }
+}
+
+export class ClearSearchParameters implements Action {
+    public readonly type = CLEAR_SEARCH_PARAMETERS;
+}
+
 export type IndicatorSharingActions = 
     SetIndicators |
     FilterIndicators |
@@ -77,4 +87,6 @@ export type IndicatorSharingActions =
     DeleteIndicator |
     SetSensors |
     SetIdentities |
-    ClearData;
+    ClearData |
+    SetSearchParameters |
+    ClearSearchParameters;
