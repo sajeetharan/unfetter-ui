@@ -43,7 +43,7 @@ export class AddIndicator implements Action {
 export class UpdateIndicator implements Action {
     public readonly type = UPDATE_INDICATOR;
 
-    constructor(public payload: { index: number, indicator: any }) { }
+    constructor(public payload: any) { }
 }
 
 export class DeleteIndicator implements Action {

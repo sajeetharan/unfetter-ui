@@ -71,13 +71,11 @@ export class IndicatorCardComponent implements OnInit, AfterViewInit {
     }
 
     public highlightPhase(phase) {
-        // return this.searchParameters.activeKillChainPhases.length && this.searchParameters.activeKillChainPhases.includes(phase);
-        return false;
+        return this.searchParameters.killChainPhases.length > 0 && this.searchParameters.killChainPhases.includes(phase);
     }
 
     public labelSelected(label) {
-        // return this.searchParameters.labels.length !== this.searchParameters.activeLabels.length && this.searchParameters.activeLabels.includes(label);
-        return false;
+        return this.searchParameters.labels.length > 0 && this.searchParameters.labels.includes(label);
     }
 
     public addLabel(label) {
@@ -165,7 +163,7 @@ export class IndicatorCardComponent implements OnInit, AfterViewInit {
         const addLike$ = this.indicatorSharingService.addInteraction(this.indicator.id)
             .subscribe(
                 (res) => {
-                    this.indicator = res.attributes;                    
+                    this.indicator = res.attributes;                   
                 },
                 (err) => {
                     console.log(err);

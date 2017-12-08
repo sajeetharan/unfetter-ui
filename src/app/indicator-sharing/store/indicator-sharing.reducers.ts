@@ -13,7 +13,8 @@ export interface IndicatorSharingState {
     sensors: any[],
     identities: any[],
     searchParameters: {},
-    indicatorToSensorMap: {}
+    indicatorToSensorMap: {},
+    sortBy: string
 }
 
 export const initialSearchParameters: SearchParameters = {
@@ -30,22 +31,24 @@ const initialState: IndicatorSharingState = {
     sensors: [],
     identities: [],
     searchParameters: { ...initialSearchParameters },
-    indicatorToSensorMap: {}
+    indicatorToSensorMap: {},
+    sortBy: SortTypes.NEWEST
 };
 
 export function indicatorSharingReducer(state = initialState, action: indicatorSharingActions.IndicatorSharingActions) {
     switch (action.type) {
         case indicatorSharingActions.SET_INDICATORS:
-            return {
+            return sortIndicators({
                 ...state,
                 indicators: action.payload,
                 filteredIndicators: action.payload
-            };
+            }, state.sortBy);
         case indicatorSharingActions.FILTER_INDICATORS:
-            return filterIndicators(state, state.searchParameters);
+            return sortIndicators(filterIndicators(state, state.searchParameters), state.sortBy);
         case indicatorSharingActions.SORT_INDICATORS:
             return sortIndicators(state, action.payload);
-        case indicatorSharingActions.ADD_INDICATOR:            
+        case indicatorSharingActions.ADD_INDICATOR:
+            // TODO update indicatorToSensorMap
             return {
                 ...state,
                 indicators: [
@@ -53,19 +56,35 @@ export function indicatorSharingReducer(state = initialState, action: indicatorS
                     action.payload
                 ]
             };
-        case indicatorSharingActions.UPDATE_INDICATOR:
-            // TODO update indicatorToSensorMap
-            const indicatorToUpdate = state.indicators[action.payload.index];
-            const updatedIndicator = {
-                ...indicatorToUpdate,
-                ...action.payload.indicator
-            };
-            const iIndicators = [...state.indicators];
-            iIndicators[action.payload.index] = updatedIndicator;
-            return {
-                ...state,
-                indicators: iIndicators
-            };
+        case indicatorSharingActions.UPDATE_INDICATOR:            
+            // const indicatorToUpdate = state.indicators[action.payload.index];
+            // const updatedIndicator = {
+            //     ...indicatorToUpdate,
+            //     ...action.payload.indicator
+            // };
+            // const iIndicators = [...state.indicators];
+            // iIndicators[action.payload.index] = updatedIndicator;
+            const indicatorToUpdateIndex = state.indicators.findIndex((indicator) => indicator.id === action.payload.id);
+            if (indicatorToUpdateIndex > -1) {
+                const iIndicators = [...state.indicators];
+                iIndicators[indicatorToUpdateIndex] = action.payload;
+                const retVal = {
+                    ...state,
+                    indicators: iIndicators
+                };
+
+                // also update in filteredIndicators
+                const filteredIndicatorToUpdateIndex = state.filteredIndicators.findIndex((indicator) => indicator.id === action.payload.id);
+                if (filteredIndicatorToUpdateIndex > -1) {
+                    const fIndicators = [...state.filteredIndicators];
+                    fIndicators[filteredIndicatorToUpdateIndex] = action.payload;
+                    retVal.filteredIndicators = fIndicators;
+                }
+                return retVal;
+            } else {
+                console.log('Did not find indicator to update;');
+                return state;
+            }            
         case indicatorSharingActions.DELETE_INDICATOR:
             const indicatorsCopy = [...state.indicators];
             indicatorsCopy.splice(action.payload, 1);
@@ -200,7 +219,8 @@ function sortIndicators(state, sortBy): any[] {
     }
     return {
         ...state,
-        filteredIndicators
+        filteredIndicators,
+        sortBy
     };
 }
 

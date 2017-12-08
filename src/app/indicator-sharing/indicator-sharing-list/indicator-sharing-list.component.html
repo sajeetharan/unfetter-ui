@@ -20,6 +20,7 @@
                     [attackPatterns]="getAttackPatternsByIndicatorId(indicator.id)"
                     [sensors]="getSensorsByIndicatorId(indicator.id)"
                     [creator]="getIdentityNameById(indicator.created_by_ref)"
+                    [searchParameters]="searchParameters"
                     (stateChange)="updateIndicator($event)"></indicator-card>              
             </div>
 

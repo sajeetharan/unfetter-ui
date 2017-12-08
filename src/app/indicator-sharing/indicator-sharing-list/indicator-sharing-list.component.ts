@@ -20,22 +20,21 @@ import * as indicatorSharingActions from '../store/indicator-sharing.actions';
 export class IndicatorSharingListComponent implements OnInit, OnDestroy {
 
     public displayedIndicators: any;
-    public allIndicators: any;
     public identities: any[];
-    public organizations: any[];
     public filteredIndicators: any;
     public DEFAULT_LENGTH: number = 10;
     public serverCallComplete: boolean = false;
     public indicatorToAttackPatternMap: any = {};
+    public indicatorToSensorMap: any = {};
     public SERVER_CALL_COMPLETE = false;
     public sensors: any[];
-    public indicatorToSensorMap: any = {};
+    public searchParameters;
 
     constructor(
         private indicatorSharingService: IndicatorSharingService, 
         public dialog: MatDialog,
         private configService: ConfigService,
-        private store: Store<fromIndicatorSharing.IndicatorSharingFeatureState>
+        public store: Store<fromIndicatorSharing.IndicatorSharingFeatureState>
     ) { }
 
     public ngOnInit() { 
@@ -50,11 +49,8 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
                 this.identities = results[0].map((r) => r.attributes); 
                 this.store.dispatch(new indicatorSharingActions.SetIdentities(this.identities));
 
-                this.organizations = this.identities.filter((identity) => identity.identity_class === 'organization');
-
                 // Indicators
-                this.allIndicators = results[1].map((res) => res.attributes);
-                this.store.dispatch(new indicatorSharingActions.SetIndicators(this.allIndicators));
+                this.store.dispatch(new indicatorSharingActions.SetIndicators(results[1].map((res) => res.attributes)));
 
                 const indicatorSub$ = this.store.select('indicatorSharing')
                     .pluck('filteredIndicators')
@@ -71,6 +67,36 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
                             indicatorSub$.unsubscribe();
                         }
                     );
+
+                const searchParametersSub$ = this.store.select('indicatorSharing')
+                    .pluck('searchParameters')
+                    .distinctUntilChanged()
+                    .subscribe(
+                        (res) => {
+                            this.searchParameters = res;
+                        },
+                        (err) => {
+                            console.log(err);
+                        },
+                        () => {
+                            searchParametersSub$.unsubscribe();
+                        }
+                    );
+
+                const indicatorToSensorMap$ = this.store.select('indicatorSharing')
+                    .pluck('indicatorToSensorMap')
+                    .distinctUntilChanged()
+                    .subscribe(
+                        (res) => {
+                            this.indicatorToSensorMap = res;
+                        },
+                        (err) => {
+                            console.log(err);
+                        },
+                        () => {
+                            searchParametersSub$.unsubscribe();
+                        }
+                    );
                 
                 // Attack patterns
                 results[2].attributes.forEach((res) => {
@@ -80,7 +106,7 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
                 // Sensors with observed data paths
                 this.sensors = results[3].map((r) => r.attributes);
                 this.store.dispatch(new indicatorSharingActions.SetSensors(this.sensors));
-                this.buildIndicatorToSensorMap();
+                // this.buildIndicatorToSensorMap();
             },
             (err) => {
                 console.log(err);
@@ -98,15 +124,7 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
     }
 
     public updateIndicator(newIndicatorState) {
-        const indicatorIndex = this.allIndicators
-            .map((indicator) => indicator.id)
-            .indexOf(newIndicatorState.id);
-
-        if (indicatorIndex > -1) {
-            this.allIndicators[indicatorIndex] = newIndicatorState
-        } else {
-            console.log('Can not find indicator to update');
-        }
+        this.store.dispatch(new indicatorSharingActions.UpdateIndicator(newIndicatorState));
     }
 
     public openDialog() {
@@ -118,8 +136,8 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
         const dialogRefClose$ = dialogRef.afterClosed()
             .subscribe((res) => {
                     if (res) {
-                        this.allIndicators.unshift(res.indicator);
                         this.store.dispatch(new indicatorSharingActions.AddIndicator(res.indicator));
+                        this.store.dispatch(new indicatorSharingActions.FilterIndicators());
                         if (res.newRelationships) {
                             const getPatterns$ = this.indicatorSharingService.getAttackPatternsByIndicator()
                                     .subscribe((patternsRes) => {
@@ -135,7 +153,7 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
                                     }
                                 );
                         }                        
-                        this.buildIndicatorToSensorMap();
+                        // this.buildIndicatorToSensorMap();
                         // TODO handle update in ngrx
                         // this.filterIndicators();
                     }
@@ -147,11 +165,7 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
                     dialogRefClose$.unsubscribe();
                 }
             );
-    }    
-
-    // public setDisplayedIndicators() {
-    //     this.displayedIndicators = this.filteredIndicators.slice(0, this.DEFAULT_LENGTH);
-    // }
+    }
 
     public showMoreIndicators() {
         const currentLength = this.displayedIndicators.length;
@@ -186,34 +200,5 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
         } else {
             return null;
         }
-    }
-
-    private buildIndicatorToSensorMap() {
-        const indicatorsWithObservedData = this.allIndicators.filter((indicator) => indicator.metaProperties && indicator.metaProperties.observedData);
-
-        indicatorsWithObservedData.forEach((indicator) => {   
-            const matchingSensorsSet = new Set();
-
-            indicator.metaProperties.observedData.forEach((obsData) => {
-
-                const sensorsFilter = this.sensors
-                    .filter((sensor) => {
-                        let retVal = false;
-                        sensor.metaProperties.observedData.forEach((sensorObsData) => {
-                            if (sensorObsData.name === obsData.name && sensorObsData.action === obsData.action && sensorObsData.property === obsData.property) {
-                                retVal = true;
-                            }
-                        });
-                        return retVal;
-                    })
-                    .forEach((sensor) => matchingSensorsSet.add(sensor));
-            });
-
-            const matchingSensors = Array.from(matchingSensorsSet);
-
-            if (matchingSensors.length) {
-                this.indicatorToSensorMap[indicator.id] = matchingSensors;
-            }
-        });
     }
 }
