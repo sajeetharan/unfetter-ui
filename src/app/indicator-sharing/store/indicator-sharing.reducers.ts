@@ -12,7 +12,8 @@ export interface IndicatorSharingState {
     filteredIndicators: any[],
     sensors: any[],
     identities: any[],
-    searchParameters: {}
+    searchParameters: {},
+    indicatorToSensorMap: {}
 }
 
 export const initialSearchParameters: SearchParameters = {
@@ -28,7 +29,8 @@ const initialState: IndicatorSharingState = {
     filteredIndicators: [],
     sensors: [],
     identities: [],
-    searchParameters: { ...initialSearchParameters }
+    searchParameters: { ...initialSearchParameters },
+    indicatorToSensorMap: {}
 };
 
 export function indicatorSharingReducer(state = initialState, action: indicatorSharingActions.IndicatorSharingActions) {
@@ -52,6 +54,7 @@ export function indicatorSharingReducer(state = initialState, action: indicatorS
                 ]
             };
         case indicatorSharingActions.UPDATE_INDICATOR:
+            // TODO update indicatorToSensorMap
             const indicatorToUpdate = state.indicators[action.payload.index];
             const updatedIndicator = {
                 ...indicatorToUpdate,
@@ -71,9 +74,11 @@ export function indicatorSharingReducer(state = initialState, action: indicatorS
                 indicators: indicatorsCopy
             };
         case indicatorSharingActions.SET_SENSORS:
+            const indicatorToSensorMap = buildIndicatorToSensorMap(state.indicators, action.payload);
             return {
                 ...state,
-                sensors: action.payload
+                sensors: action.payload,
+                indicatorToSensorMap
             };
         case indicatorSharingActions.SET_IDENTITIES:
             return {
@@ -146,14 +151,14 @@ function filterIndicators(state, searchParameters) {
             .filter((indicator) => indicator.name.toLowerCase().indexOf(searchParameters.indicatorName.toLowerCase()) > -1);
     }
 
-    // if (searchParameters.sensors.length) {
-    //     filteredIndicators = filteredIndicators
-    //         .filter((indicator) => indicator.metaProperties && indicator.metaProperties.observedData && Object.keys(this.indicatorToSensorMap).includes(indicator.id))
-    //         .filter((indicator) => this.indicatorToSensorMap[indicator.id]
-    //             .map((sensor) => sensor.id)
-    //             .filter((sensorId) => this.searchParameters.activeSensorIds.includes(sensorId)).length > 0
-    //         );
-    // }
+    if (searchParameters.sensors.length) {
+        filteredIndicators = filteredIndicators
+            .filter((indicator) => indicator.metaProperties && indicator.metaProperties.observedData && Object.keys(state.indicatorToSensorMap).includes(indicator.id))
+            .filter((indicator) => state.indicatorToSensorMap[indicator.id]
+                .map((sensor) => sensor.id)
+                .filter((sensorId) => searchParameters.sensors.includes(sensorId)).length > 0
+            );
+    }
 
     return {
         ...state,
@@ -161,7 +166,7 @@ function filterIndicators(state, searchParameters) {
     };
 }
 
-function sortByArrayLengthHelper(a, b, field) {
+function sortByArrayLengthHelper(a, b, field): number {
     if (a.metaProperties && a.metaProperties[field] && (!b.metaProperties[field] || !b.metaProperties)) {
         return -1;
     } else if ((!a.metaProperties || !a.metaProperties[field]) && b.metaProperties && b.metaProperties[field]) {
@@ -173,7 +178,7 @@ function sortByArrayLengthHelper(a, b, field) {
     }
 }
 
-function sortIndicators(state, sortBy) {
+function sortIndicators(state, sortBy): any[] {
     let filteredIndicators = [ ...state.filteredIndicators ];
     switch (sortBy) {
         case SortTypes.NEWEST:
@@ -197,4 +202,36 @@ function sortIndicators(state, sortBy) {
         ...state,
         filteredIndicators
     };
+}
+
+function buildIndicatorToSensorMap(indicators, sensors): object {
+    const indicatorToSensorMap = {};
+    const indicatorsWithObservedData = indicators.filter((indicator) => indicator.metaProperties && indicator.metaProperties.observedData);
+
+    indicatorsWithObservedData.forEach((indicator) => {
+        const matchingSensorsSet = new Set();
+
+        indicator.metaProperties.observedData.forEach((obsData) => {
+
+            const sensorsFilter = sensors
+                .filter((sensor) => {
+                    let retVal = false;
+                    sensor.metaProperties.observedData.forEach((sensorObsData) => {
+                        if (sensorObsData.name === obsData.name && sensorObsData.action === obsData.action && sensorObsData.property === obsData.property) {
+                            retVal = true;
+                        }
+                    });
+                    return retVal;
+                })
+                .forEach((sensor) => matchingSensorsSet.add(sensor));
+        });
+
+        const matchingSensors = Array.from(matchingSensorsSet);
+
+        if (matchingSensors.length) {
+            indicatorToSensorMap[indicator.id] = matchingSensors;
+        }
+    });
+
+    return indicatorToSensorMap;
 }

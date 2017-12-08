@@ -59,7 +59,8 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
                 const indicatorSub$ = this.store.select('indicatorSharing')
                     .pluck('filteredIndicators')
                     .distinctUntilChanged()
-                    .subscribe((res: any[]) => {
+                    .subscribe(
+                        (res: any[]) => {
                             this.filteredIndicators = res;
                             this.displayedIndicators = res.slice(0, this.DEFAULT_LENGTH);
                         },
@@ -178,15 +179,6 @@ export class IndicatorSharingListComponent implements OnInit, OnDestroy {
             return false;
         }
     }
-
-    // public clearSearchParamaters() {
-    //     this.searchParameters.activeLabels = []; 
-    //     this.searchParameters.activeIdentities = []; 
-    //     this.searchParameters.activeKillChainPhases = [];
-    //     this.searchParameters.activeSensorIds = [];
-    //     this.searchParameters.indicatorName = '';
-    //     this.filterIndicators();
-    // }
 
     public getSensorsByIndicatorId(indicatorId) {
         if (Object.keys(this.indicatorToSensorMap).includes(indicatorId)) {
