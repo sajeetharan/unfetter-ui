@@ -1,6 +1,7 @@
 import * as indicatorSharingActions from './indicator-sharing.actions';
 import * as fromApp from '../../root-store/app.reducers'
 import { SearchParameters } from '../models/search-parameters';
+import { SortTypes } from '../models/sort-types.enum';
 
 export interface IndicatorSharingFeatureState extends fromApp.AppState {
     indicatorSharing: IndicatorSharingState
@@ -175,20 +176,20 @@ function sortByArrayLengthHelper(a, b, field) {
 function sortIndicators(state, sortBy) {
     let filteredIndicators = [ ...state.filteredIndicators ];
     switch (sortBy) {
-        case 'NEWEST':
+        case SortTypes.NEWEST:
             filteredIndicators = filteredIndicators.sort((a, b) => {
                 return (new Date(b.created) as any) - (new Date(a.created) as any);
             });
             break;
-        case 'OLDEST':
+        case SortTypes.OLDEST:
             filteredIndicators = filteredIndicators.sort((a, b) => {
                 return (new Date(a.created) as any) - (new Date(b.created) as any);
             });
             break;
-        case 'LIKES':
+        case SortTypes.LIKES:
             filteredIndicators = filteredIndicators.sort((a, b) => sortByArrayLengthHelper(a, b, 'likes'));
             break;
-        case 'COMMENTS':
+        case SortTypes.COMMENTS:
             filteredIndicators = filteredIndicators.sort((a, b) => sortByArrayLengthHelper(a, b, 'comments'));
             break;
     }

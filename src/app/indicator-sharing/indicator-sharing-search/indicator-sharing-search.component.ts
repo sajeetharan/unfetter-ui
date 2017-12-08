@@ -10,6 +10,7 @@ import 'rxjs/add/operator/filter';
 import * as fromIndicatorSharing from '../store/indicator-sharing.reducers';
 import * as indicatorSharingActions from '../store/indicator-sharing.actions';
 import { SearchParameters } from '../models/search-parameters';
+import { SortTypes } from '../models/sort-types.enum';
 
 @Component({
     selector: 'indicator-sharing-search',
@@ -20,6 +21,7 @@ export class IndicatorSharingSearchComponent implements OnInit {
 
     public searchForm: FormGroup;
     public sortBy: string = 'NEWEST';
+    public sortTypes = SortTypes;
     public killChainPhases$: Observable<any>;
     public labels$: Observable<any>;
 
