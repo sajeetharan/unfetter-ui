@@ -149,9 +149,10 @@ export function indicatorSharingReducer(state = initialState, action: indicatorS
 }
 
 function filterIndicators(state, searchParameters) {
+    const allIndicators = [...state.indicators];
     let filteredIndicators;
     if (searchParameters.labels.length) {
-        filteredIndicators = [...state.indicators]
+        filteredIndicators = allIndicators
             .filter((indicator) => {
                 if (indicator.labels !== undefined && indicator.labels.length) {
                     let labelPresent = false;
@@ -246,7 +247,7 @@ function sortIndicators(state, sortBy) {
         ...state,
         filteredIndicators,
         sortBy,
-        displayedInicators: initDisplauyedIndicators(filteredIndicators)
+        displayedIndicators: initDisplauyedIndicators(filteredIndicators)
     };
 }
 
