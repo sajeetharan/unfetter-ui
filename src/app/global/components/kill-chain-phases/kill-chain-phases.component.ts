@@ -1,9 +1,14 @@
 import { Component, Input, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormArray, FormControl, FormGroup } from '@angular/forms';
+import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs/Observable';
+import 'rxjs/add/operator/pluck';
+import 'rxjs/add/operator/filter';
 
 import { KillChainPhasesForm } from '../../form-models/kill-chain-phases';
 import { heightCollapse } from '../../animations/height-collapse';
-import { ConfigService } from '../../../core/services/config.service';
+import * as fromApp from '../../../root-store/app.reducers';
+import { RxjsHelpers } from '../../static/rxjs-helpers';
 
 @Component({
     selector: 'kill-chain-phases-reactive',
@@ -23,20 +28,30 @@ export class KillChainPhasesReactiveComponent implements OnInit {
     public distinctKillChainPhases: string[] = [];
     public formResetComplete = true;
 
-    constructor(private configService: ConfigService, private changeDetectorRef: ChangeDetectorRef) { }
+    constructor(
+        private changeDetectorRef: ChangeDetectorRef,
+        private store: Store<fromApp.AppState>
+    ) { }
 
     public ngOnInit() {
         this.resetForm();
-        this.configService.getConfigPromise()
-            .then((res) => {
-                this.killChainRaw = res.killChains;
-                this.killChainNames = res.killChains.map((kc) => kc.name);
-                this.distinctKillChainPhases = res.killChains
-                    .map((kc) => kc.phase_names)
-                    .reduce((prev, cur) => prev.concat(cur), [])
-                    .filter((phase, pos, arr) => arr.indexOf(phase) === pos);
-            })
-            .catch((err) => console.log(err));
+        const configSub$ = RxjsHelpers.getNgrxConfigKey(this.store, 'killChains')
+            .subscribe(
+                (res: any[]) => {
+                    this.killChainRaw = res;
+                    this.killChainNames = res.map((kc) => kc.name);
+                    this.distinctKillChainPhases = res
+                        .map((kc) => kc.phase_names)
+                        .reduce((prev, cur) => prev.concat(cur), [])
+                        .filter((phase, pos, arr) => arr.indexOf(phase) === pos);
+                },
+                (err) => {
+                    console.log(err);
+                },
+                () => {
+                    configSub$.unsubscribe();
+                }
+            );
     }
 
     public resetForm() {

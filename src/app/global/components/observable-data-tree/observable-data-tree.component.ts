@@ -1,9 +1,11 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { FormControl, FormGroup, FormArray, Validators } from '@angular/forms';
+import { Store } from '@ngrx/store';
 
-import { ConfigService } from '../../../core/services/config.service';
 import { ObservedDataForm } from '../../form-models/observed-data';
 import { heightCollapse } from '../../animations/height-collapse';
+import * as fromApp from '../../../root-store/app.reducers';
+import { RxjsHelpers } from '../../static/rxjs-helpers';
 
 @Component({
     selector: 'observable-data-tree',
@@ -21,18 +23,26 @@ export class ObservableDataTreeComponent implements OnInit {
     public showTree: boolean = false;
     public checkboxModel: any = {};
     
-    constructor(private configService: ConfigService) { }
+    constructor(private store: Store<fromApp.AppState>) { }
 
     public ngOnInit() {
-        this.configService.getConfigPromise()
-            .then((res) => {
-                if (this.observedDataPath && this.observedDataPath.length) {
-                    this.buildTree(true);
-                } else {
-                    this.buildTree();
+        const configSub$ = RxjsHelpers.getNgrxConfigKey(this.store, 'observableDataTypes')
+            .subscribe(
+                (res) => {
+                    this.observableDataTypes = res;
+                    if (this.observedDataPath && this.observedDataPath.length) {
+                        this.buildTree(true);
+                    } else {
+                        this.buildTree();
+                    }
+                },
+                (err) => {
+                    console.log(err);
+                },
+                () => {
+                    configSub$.unsubscribe();
                 }
-            })
-            .catch((err) => console.log(err));
+            );
     }
 
     public checkBoxChange(e, name, action, property) {
@@ -92,7 +102,6 @@ export class ObservableDataTreeComponent implements OnInit {
     }
 
     private buildTree(observedDataPathPresent?: boolean) {
-        this.observableDataTypes = this.configService.configurations.observableDataTypes;
         this.observableDataTypes.forEach((item) => {
             item.showActions = false;
             this.showPropertyTree[item.name] = {};
